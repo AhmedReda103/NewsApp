@@ -5,7 +5,7 @@ import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
 
 @ViewModelScoped
-class Repository @Inject constructor( val remoteDataSource: RemoteDataSource) {
+class Repository @Inject constructor(private val remoteDataSource: RemoteDataSource) {
 
     val remote = remoteDataSource
 

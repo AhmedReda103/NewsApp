@@ -8,10 +8,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.newsapp.MyApplication
 import com.example.newsapp.data.Repository
-import com.example.newsapp.models.SourceResponse
+import com.example.newsapp.models.news.NewsResponse
+import com.example.newsapp.models.sources.SourceResponse
 import com.example.newsapp.utils.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -28,8 +28,32 @@ class MainViewModel @Inject constructor(
         MutableStateFlow<NetworkResult<SourceResponse>>(NetworkResult.Unspecified())
     val sources = _sources.asStateFlow()
 
+    private val _news = MutableStateFlow<NetworkResult<NewsResponse>>(NetworkResult.Unspecified())
+    val news = _news.asStateFlow()
+
     fun getNewsSources(category: String) = viewModelScope.launch {
         getNewsSourcesSafeCall(category)
+    }
+
+    fun getNewsBySource(source: String) = viewModelScope.launch {
+        getNewsBySourceSafeCall(source)
+    }
+
+    private suspend fun getNewsBySourceSafeCall(source: String) {
+        viewModelScope.launch { _news.emit(NetworkResult.Loading()) }
+        if (hasInternetConnection()){
+            try {
+
+                val response = repository.remote.getNews(source)
+                viewModelScope.launch { _news.emit(handleNewsBySourcesResponse(response)) }
+            }catch (ex : Exception){
+                viewModelScope.launch { _news.emit(NetworkResult.Error(ex.message.toString())) }
+            }
+
+        }else{
+            viewModelScope.launch { _news.emit(NetworkResult.Error("No Internet Connection ")) }
+
+        }
     }
 
 
@@ -39,7 +63,7 @@ class MainViewModel @Inject constructor(
             try {
 
                 val response = repository.remote.getSources(category)
-                viewModelScope.launch { _sources.emit(handleRecipesResponse(response)) }
+                viewModelScope.launch { _sources.emit(handleSourcesResponse(response)) }
             }catch (ex : Exception){
                 viewModelScope.launch { _sources.emit(NetworkResult.Error(ex.message.toString())) }
             }
@@ -51,7 +75,7 @@ class MainViewModel @Inject constructor(
 
     }
 
-    private fun handleRecipesResponse(response: Response<SourceResponse>): NetworkResult<SourceResponse> {
+    private fun handleSourcesResponse(response: Response<SourceResponse>): NetworkResult<SourceResponse> {
         when{
             response.message().toString().contains("timeout")->{
                 return NetworkResult.Error("TimeOut")
@@ -60,6 +84,26 @@ class MainViewModel @Inject constructor(
                 return NetworkResult.Error("API KEY Limited")
             }
             response.body()?.sources.isNullOrEmpty()->{
+                return NetworkResult.Error("Sources Not Found")
+            }
+            response.isSuccessful->{
+                return NetworkResult.Success(response.body()!!)
+            }
+            else->{
+                return NetworkResult.Error(response.message().toString())
+            }
+        }
+    }
+
+    private fun handleNewsBySourcesResponse(response: Response<NewsResponse>): NetworkResult<NewsResponse> {
+        when{
+            response.message().toString().contains("timeout")->{
+                return NetworkResult.Error("TimeOut")
+            }
+            response.code()==402->{
+                return NetworkResult.Error("API KEY Limited")
+            }
+            response.body()?.articles.isNullOrEmpty()->{
                 return NetworkResult.Error("Sources Not Found")
             }
             response.isSuccessful->{

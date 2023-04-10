@@ -22,7 +22,6 @@
         tools:layout="@layout/fragment_news" >
         <argument
             android:name="categoryId"
-            app:argType="string"
-            android:defaultValue="sports" />
+            app:argType="string" />
     </fragment>
 </navigation>
