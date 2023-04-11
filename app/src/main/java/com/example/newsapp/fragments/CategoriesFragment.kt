@@ -5,6 +5,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.navigation.fragment.findNavController
 import com.example.newsapp.R
 import com.example.newsapp.adapters.CategoriesAdapter
@@ -41,6 +42,11 @@ class CategoriesFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        val title = activity?.findViewById<TextView>(R.id.toolbar_text_view)
+        title?.text = "News App"
+    }
     override fun onDestroy() {
         super.onDestroy()
         _binding = null

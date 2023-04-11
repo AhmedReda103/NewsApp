@@ -23,5 +23,17 @@
         <argument
             android:name="categoryId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_newsFragment_to_detailsNewsFragment"
+            app:destination="@id/detailsNewsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/detailsNewsFragment"
+        android:name="com.example.newsapp.fragments.DetailsNewsFragment"
+        android:label="fragment_details_news"
+        tools:layout="@layout/fragment_details_news" >
+        <argument
+            android:name="articleItem"
+            app:argType="com.example.newsapp.models.news.Article" />
     </fragment>
 </navigation>

@@ -6,12 +6,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TableLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.navArgs
+import com.example.newsapp.R
 import com.example.newsapp.adapters.NewsAdapter
 import com.example.newsapp.databinding.FragmentNewsBinding
 import com.example.newsapp.models.sources.Source
@@ -40,6 +42,7 @@ class NewsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding= FragmentNewsBinding.inflate(inflater , container , false)
+
         return binding.root
     }
 
@@ -133,6 +136,11 @@ class NewsFragment : Fragment() {
         })
     }
 
+    override fun onResume() {
+        super.onResume()
+        val title = activity?.findViewById<TextView>(R.id.toolbar_text_view)
+        title?.text =args.categoryId
+    }
 
     override fun onDestroy() {
         super.onDestroy()
