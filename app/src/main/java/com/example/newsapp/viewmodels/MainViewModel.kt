@@ -5,9 +5,13 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.newsapp.MyApplication
 import com.example.newsapp.data.Repository
+import com.example.newsapp.data.database.entities.NewsItemEntity
+import com.example.newsapp.data.database.entities.SourceItemEntity
 import com.example.newsapp.models.news.NewsResponse
 import com.example.newsapp.models.sources.SourceResponse
 import com.example.newsapp.utils.NetworkResult
@@ -24,6 +28,37 @@ class MainViewModel @Inject constructor(
     private val repository: Repository
 ) : AndroidViewModel(application) {
 
+
+    /**+
+     * ROOM Database
+     */
+
+   fun readNews(sourceId : String) : LiveData<List<NewsItemEntity>>{
+       return repository.getOfflineNews(sourceId).asLiveData()
+   }
+
+    fun readSources(category: String):LiveData<List<SourceItemEntity>>{
+        return repository.getOfflineSources(category).asLiveData()
+    }
+
+    private fun insertNews(newsEntity: NewsItemEntity) {
+        viewModelScope.launch {
+            repository.insertNews(newsEntity)
+        }
+    }
+
+    private fun insertSources(sourceEntity: SourceItemEntity) {
+        viewModelScope.launch {
+            repository.insertSources(sourceEntity)
+        }
+    }
+
+
+
+
+    /**
+     * Retrofit
+     */
     private val _sources =
         MutableStateFlow<NetworkResult<SourceResponse>>(NetworkResult.Unspecified())
     val sources = _sources.asStateFlow()
@@ -43,9 +78,13 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch { _news.emit(NetworkResult.Loading()) }
         if (hasInternetConnection()){
             try {
-
-                val response = repository.remote.getNews(source)
+                val response = repository.getOnlineNews(source)
                 viewModelScope.launch { _news.emit(handleNewsBySourcesResponse(response)) }
+                val news = _news.value.data
+                if(news!=null){
+                    offlineCacheNews(news , source)
+                }
+
             }catch (ex : Exception){
                 viewModelScope.launch { _news.emit(NetworkResult.Error(ex.message.toString())) }
             }
@@ -56,14 +95,23 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private fun offlineCacheNews(news: NewsResponse, source: String) {
+        val newsEntity = NewsItemEntity(news, source)
+        insertNews(newsEntity)
+    }
+
 
     private suspend fun getNewsSourcesSafeCall(category: String) {
         viewModelScope.launch { _sources.emit(NetworkResult.Loading()) }
         if (hasInternetConnection()){
             try {
 
-                val response = repository.remote.getSources(category)
+                val response = repository.getOnlineSources(category)
                 viewModelScope.launch { _sources.emit(handleSourcesResponse(response)) }
+                val sources = _sources.value.data
+                if(sources!=null){
+                    offlineCacheSources(sources , category)
+                }
             }catch (ex : Exception){
                 viewModelScope.launch { _sources.emit(NetworkResult.Error(ex.message.toString())) }
             }
@@ -74,6 +122,13 @@ class MainViewModel @Inject constructor(
         }
 
     }
+
+    private fun offlineCacheSources(sources: SourceResponse, category: String) {
+        val sourceEntity = SourceItemEntity(sources , category )
+        insertSources(sourceEntity)
+    }
+
+
 
     private fun handleSourcesResponse(response: Response<SourceResponse>): NetworkResult<SourceResponse> {
         when{

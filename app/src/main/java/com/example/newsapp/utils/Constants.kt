@@ -7,10 +7,13 @@ object Constants {
 
      const val API_KEY  = "6177b813091f4416a7fc932ad79a65d6"
      const val BASE_URL = "https://newsapi.org"
+     const val SOURCE_ITEM_TABLE = "source_item_table"
+     const val NEWS_TABLE = "news_table"
+     const val DATABASE_NAME = "news_database"
 
 
 
-      val CATEGORIES_LIST = listOf(
+    val CATEGORIES_LIST = listOf(
           Category("sports", R.string.sports, R.drawable.sports, R.color.red),
           Category("general", R.string.entertainment, R.drawable.environment, R.color.blue),
           Category("health", R.string.health, R.drawable.health, R.color.pink),

@@ -18,6 +18,7 @@ import com.example.newsapp.adapters.NewsAdapter
 import com.example.newsapp.databinding.FragmentNewsBinding
 import com.example.newsapp.models.sources.Source
 import com.example.newsapp.utils.NetworkResult
+import com.example.newsapp.utils.observeOnce
 import com.example.newsapp.viewmodels.MainViewModel
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
@@ -37,6 +38,8 @@ class NewsFragment : Fragment() {
 
     private val newsAdapter by lazy { NewsAdapter() }
 
+    lateinit var category:String
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -49,8 +52,10 @@ class NewsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val category = args.categoryId
+        category = args.categoryId
         setupRecyclerView()
+
+        readDatabase()
 
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED){
@@ -58,6 +63,7 @@ class NewsFragment : Fragment() {
                     when(it){
                         is NetworkResult.Error -> {
                             binding.progressBar.visibility= View.INVISIBLE
+
                             Toast.makeText(requireContext() , it.message.toString() , Toast.LENGTH_SHORT).show()
                         }
                         is NetworkResult.Loading -> {
@@ -74,6 +80,28 @@ class NewsFragment : Fragment() {
         }
 
 
+
+    }
+
+    private fun readDatabase() {
+        lifecycleScope.launch {
+            mainViewModel.readSources(category).observeOnce(viewLifecycleOwner){
+                if(it.isNotEmpty()){
+                    it.forEach {
+                        if(it.category == category){
+                            val sources = it.source.sources
+                            addSourcesToTabLayout(sources)
+                        }
+                    }
+                    binding.progressBar.visibility = View.INVISIBLE
+                }else{
+                    requestApiSources()
+                }
+            }
+        }
+    }
+
+    private fun requestApiSources() {
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED){
                 mainViewModel.getNewsSources(category)
@@ -110,23 +138,22 @@ class NewsFragment : Fragment() {
             tab.tag = it
             binding.tabLayout.addTab(tab)
         }
-        val source =  binding.tabLayout.getTabAt(0)?.tag as Source
-        source.id?.let {
-            mainViewModel.getNewsBySource(it)
-        }
+//        val source =  binding.tabLayout.getTabAt(0)?.tag as Source
+//        source.id?.let {
+//            mainViewModel.getNewsBySource(it)
+//        }
         binding.tabLayout.addOnTabSelectedListener(object  : TabLayout.OnTabSelectedListener{
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 val source = tab?.tag as Source
-                source.id?.let {
-                    mainViewModel.getNewsBySource(it)
-                }
+                readNewsDatabase(source.id)
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {
                 val source = tab?.tag as Source
-                source.id?.let {
-                    mainViewModel.getNewsBySource(it)
-                }
+//                source.id?.let {
+//                    mainViewModel.getNewsBySource(it)
+//                }
+                readNewsDatabase(source.id)
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab?) {
@@ -134,6 +161,22 @@ class NewsFragment : Fragment() {
             }
 
         })
+    }
+
+    private fun readNewsDatabase(id: String?) {
+        mainViewModel.readNews(id!!).observeOnce(viewLifecycleOwner){
+            if(it.isNotEmpty()){
+                it.forEach {
+                    if(it.source==id){
+                        newsAdapter.differ.submitList(it.newsResponse.articles)
+                    }
+                }
+                binding.progressBar.visibility = View.INVISIBLE
+            }else{
+                mainViewModel.getNewsBySource(id)
+            }
+        }
+
     }
 
     override fun onResume() {
