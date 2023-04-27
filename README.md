@@ -60,7 +60,7 @@ News app is an application that display news for categories like ( sports - heal
 | Parameter | Type     | Description                |
 | :-------- | :------- | :------------------------- |
 | `api_key` | `string` | **Required**. Your API key |
-| `category`  | `string` | 	Find sources that display news of this category Default: all categories|
+| `category`  | `string` | 	Find sources that display news of this category. Possible options: business entertainment general health science sports technology. Default: all categories|
 
 #### get news by specific source 
 
